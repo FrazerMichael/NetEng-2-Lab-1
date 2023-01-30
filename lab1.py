@@ -87,6 +87,11 @@ def assignIPV6(device, subnet, routerNumber, interface):
     else:    
     	slash = subnet.find('/')
     	completeIPV6Address = subnet[:slash] + str(routerNumber) + subnet[slash:]
+    
+    net_connect = netmiko.ConnectHandler(**device)
+    net_connect.enable()
+    config_ipv4 = ['int ' + interface, 'ipv6 address ' + completeIPV6Address]
+    net_connect.send_config_set(config_ipv4)
 
     return completeIPV6Address
 
@@ -103,16 +108,17 @@ def wcAssigner(routerList):
         temp.append(wildCardCalculator(each))
     return temp
 
-def ospfConfV4(device, ip):
+def ospfConfV4(device:dict, ip:str):
     net_connect = netmiko.ConnectHandler(**device)
     net_connect.enable()
     config_ospf = ['router ospf 1', 'network ' + ip + ' area 0']
     net_connect.send_config_set(config_ospf)
 
-def ospfConfV6(device, ip, interface):
-    nenet_connect = netmiko.ConnectHandler(**device)
+def ospfConfV6(device:dict, ip:str, interface:str):
+    net_connect = netmiko.ConnectHandler(**device)
     net_connect.enable()
-    config_ospf = ['ipv6 unicast-routing', 'int ' + interface, 'ospfv3 1 ipv6 area 0']
+    config_ospfV6 = ['ipv6 unicast-routing', 'int ' + interface, 'ospfv3 1 ipv6 area 0', 'exit', 'exit', 'address-family ipv6 unicast', 'exit-address-family']
+    net_connect.send_config_set(config_ospfV6)
 
 #The following is the configuration of all the ip addresses to the correct interfaces
 #The sleep command is a workaround for my poor coding as telnetting in so rapidly was breaking the connection
@@ -183,30 +189,33 @@ wcMF5 = wcAssigner(ipv4MF5)
 allWCIPs = [wcMF1, wcMF2, wcMF3, wcMF4, wcMF5]
 allipv6 = [ipv6MF1, ipv6MF2, ipv6MF3, ipv6MF4, ipv6MF5]
 
-for i in range(len(allWCIPs)):
-    router = routers[i]
-    for each in allWCIPs[i]:
-        ospfConfV4(router, each)
-        time.sleep(1)
+# for i in range(len(allWCIPs)):
+#     router = routers[i]
+#     for each in allWCIPs[i]:
+#         ospfConfV4(router, each)
+#         time.sleep(1)
 
+#Router MF1 IPV6 ospf
+ospfConfV6(MF1, allipv6[0][0], 'g0/0')
+time.sleep(1)
+ospfConfV6(MF1, allipv6[0][1], 'g1/0')
 
+#Router MF2 IPV6 ospf
+ospfConfV6(MF2, allipv6[1][0], 'g0/0')
+time.sleep(1)
+ospfConfV6(MF2, allipv6[1][1], 'g1/0')
 
+#Router MF3 IPV6 ospf
+ospfConfV6(MF3, allipv6[2][0], 'g1/0')
+time.sleep(1)
+ospfConfV6(MF3, allipv6[2][1], 'g2/0')
 
+#Router MF4 IPV6 ospf
+ospfConfV6(MF4, allipv6[3][0], 'g1/0')
+time.sleep(1)
+ospfConfV6(MF4, allipv6[3][1], 'g0/0')
 
-#net_connect.enable()
-
-#config_commands = ['int g4/0', 'ip address 192.168.2.1 255.255.255.0', 'no shut']
-#output = net_connect.send_config_set(config_commands)
-
-
-#output1 = net_connect.send_command('conf t')
-#print (output1)
-
-#output2 = net_connect.send_command('int g1/0')
-#print (output2)
-
-#output3 = net_connect.send_command('ip address 192.168.2.1 255.255.255.0')
-#print (output3)
-
-#output = net_connect.send_command('show int')
-#print (output)
+#Router MF4 IPV6 ospf
+ospfConfV6(MF5, allipv6[4][0], 'g0/0')
+time.sleep(1)
+ospfConfV6(MF5, allipv6[4][1], 'g2/0')
